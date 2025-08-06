@@ -7,9 +7,9 @@ LSTDQ (in lspi.py) iteratively updates the weights of the Q-value approximation 
 Some elements of this implementation are from yusme/LSPI (https://github.com/yusme/LSPI). The CartPole environment (environment.py) is from (http://incompleteideas.net/sutton/book/code/pole.c), which is used in the Gymnasium CartPole-v1 implementation. The environment here is modified to have 3 discrete actions and noisy force, consistent with Lagoudakis and Parr. 
 
 Results (Gymnasium parameters):
-Episodes trained | Batch size | Average steps
----------------------------------------------
-6000             | 6000       | 253.2284
+| Episodes trained | Batch size | Average steps |
+| ---------------- | ---------- | ------------- |
+| 6000             | 6000       | 253.2284
 
 
 
