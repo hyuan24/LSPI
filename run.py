@@ -8,7 +8,6 @@ import gymnasium as gym
 import numpy as np
 
 from environment import CartPole3 # 3 actions: left, do nothing, right
-from env2 import CartPoleWrapper
 import matplotlib.pyplot as plt
 from collections import defaultdict
 

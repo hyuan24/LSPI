@@ -180,7 +180,7 @@ class CartPole3(gym.Env):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
-
+'''
 class CartPoleWrapper(gym.Env):
     def __init__(self):
         super().__init__()
@@ -195,5 +195,7 @@ class CartPoleWrapper(gym.Env):
         return state[[2,3]], reward, done, False, {}
     def reset(self, seed = None, options = None):
         return self.env.reset(seed=seed, options=options)[0][[2,3]]
+'''
+
     
 
