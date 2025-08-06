@@ -1,56 +1,57 @@
 from scipy import *
 from scipy.linalg import norm, pinv
+import itertools
 
 import numpy as np
-
+import math
 
 class BasisFunction:
-    def __init__(self, indim, numCenters, outdim):
+    def __init__(self, indim,  outdim, numWeights, param="gym"):
         self.indim = indim
         self.outdim = outdim
-        self.numCenters = numCenters
-        self.centers = [np.random.uniform(-1, 1, indim) for i in xrange(numCenters)]
-        print "Centers",self.centers
-        self.beta = 8
-        self.W = np.random.random((self.numCenters, self.outdim))
+        self.numWeights = numWeights
 
-    def _basisfunc(self, c, d):
-        assert len(d) == self.indim
-        norm_1 = (c-d)/((c**2)+(d**2))**(1/2)
-        print (c-d),(norm_1)
-        return np.exp(-self.beta *( (c-d)[0]** 2))
+        if param=="gym":
+            theta, thetadot = [[-0.1, 0, 0.1], [-1, 0, 1]]
+        elif param=="lagoudakis":
+            theta, thetadot = [[-math.pi/4, 0, math.pi/4], [-1, 0, 1]]
 
-    # Berechnen de basis FUnction for each sample and gaussion
-    def _calcAct(self, X):
-        # calculate activations of RBFs
-        G = np.zeros((X.shape[0], self.numCenters), float)
-        for ci, c in enumerate(self.centers):
-            for xi, x in enumerate(X):
-                G[xi, ci] = self._basisfunc(c, x)
-        return G
+        self.e_centers = np.array(list(itertools.product(theta, thetadot))) # non-constant centers
+        print(f"e_centers DIM: {np.shape(self.e_centers)}")
 
-    def train(self, X, Y):
-        """ X: matrix of dimensions n x indim
-            y: column vector of dimension n x 1 """
+        self.beta = 1/2
 
-        # choose random center vectors from training set
-        rnd_idx = np.random.permutation(X.shape[0])[:self.numCenters]
-        self.centers = [X[i, :] for i in rnd_idx]
+    def basisfunc(self, state, action):
+        assert len(state) == self.indim
+      
+        #norm_1 = (c-d)/((c**2)+(d**2))**(1/2)
+        basis = []
+        block = np.zeros(10)
+        block[0] = 1  # constant term
+        for i, c in enumerate(self.e_centers):
+            block[i+1] = np.exp(-self.beta * np.linalg.norm(c - state)**2)
 
-        #print "center", self.centers
-        # calculate activations of RBFs
-        G = self._calcAct(X)
-        #print G
+        #print(block)
+        
+        if action == 0: # THREE ACTIONS
+            basis = np.append(block, np.zeros(20))
+        elif action == 1:
+            basis = np.append(np.append(np.zeros(10), block), np.zeros(10))
+        elif action == 2:
+            basis = np.append(np.zeros(20), block) # CHANGED
+        else:
+            ValueError("Invalid Action in rbf.py basisfunc")
+        '''
+        if action == 0: # TWO ACTIONS
+            basis = np.append(block, np.zeros(10))
+        elif action == 1:
+            basis = np.append(np.zeros(10), block)
+        else:
+            ValueError("Invalid Action in rbf.py basisfunc")
+        '''
+        return basis
 
-
-        # calculate output weights (pseudoinverse)
-        Maximun_likelihood= pinv(G) #pseudoinverse
-        self.W = np.dot(Maximun_likelihood, Y)
-
-    def test(self, X):
-        """ X: matrix of dimensions n x indim """
-
-        G = self._calcAct(X)
-        Y = np.dot(G, self.W)
-        return Y
-
+if __name__ == '__main__':
+    print("Hello")
+    rbf = BasisFunction(2, 1, 20)
+    print(rbf.basisfunc([-np.pi/4, -1], 1))

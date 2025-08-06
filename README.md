@@ -1,32 +1,15 @@
-# LSPI  Least-Squares Policy Iteration
+# Least-Squares Policy Iteration
 
-(LSPI) reinforcement learning algorithm is a model-free, off-policy method
+Implementation of LSPI (Lagoudakis and Parr) from (https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf). LSPI is an approximate model-free policy iteration method. In this case, it uses a linear architecture with radial basis functions to approximate the Q-values. 
 
-https://www2.cs.duke.edu/research/AI/LSPI/nips01.pdf
+LSTDQ (in lspi.py) iteratively updates the weights of the Q-value approximation using least-squares fixed-point approximation. LSPI (lspi.py) is essentially a main training loop that repeatedly calls LSTDQ for policy evaluation. 
 
-The goal of these algorithms is to perform
+Some elements of this implementation are from yusme/LSPI (https://github.com/yusme/LSPI). The CartPole environment (environment.py) is from (http://incompleteideas.net/sutton/book/code/pole.c), which is used in the Gymnasium CartPole-v1 implementation. The environment here is modified to have 3 discrete actions and noisy force, consistent with Lagoudakis and Parr. 
 
-LSPI is model-free and uses the results of LSQ to form an approximate policy iteration algorithm. 
-This algorithm combines the policy search efficiency of policy iteration with the data efficiency of LSTD
-
-Since LSPI uses LSQ to compute approximate Q functions, it can use any data source for samples.
-A single set of samples may be used for the entire optimization, or additional samples may be acquired, 
-either through trajectories or some other scheme, for each iteration of policy iteration
- 
-LSQ: Learning the State-Action Value Function
-LSPI uses LSQ to compute approximate Q function
+Results (Gymnasium parameters):
+Episodes trained | Batch size | Average steps
+---------------------------------------------
+6000             | 6000       | 253.2284
 
 
 
-- Solving Acrobot env with LSPI 
-
-![](Acrobot.gif)
-
-
-- Solving mountainCar-v0 env with LSPI
-
-![](MountainCar.gif)
-
-
-## TODO
-- Weighted importance sampling for off-policy
