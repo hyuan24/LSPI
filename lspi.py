@@ -1,17 +1,22 @@
 
 import numpy as np
-from rbf import BasisFunction
+from rbf import RadialBasisFunction, PolynomialBasisFunction
 from policy import Policy
 
 
 class LSPI:
 
-    def __init__(self, num_actions, num_means, env, indim, gamma=0.95):
+    def __init__(self, num_actions, num_means, env, indim, basis_type="radial", gamma=0.95):
 
-        print(f"LSPI created with {num_actions} actions, {num_means} bases")
+        #print(f"LSPI created with {num_actions} actions, {num_means} bases")
 
-        self.num_weights = num_means*num_actions
-        self.basis_function = BasisFunction(indim, 1, self.num_weights, env.param)
+        #self.num_weights = num_means*num_actions
+        if basis_type == "radial":
+            self.basis_function = RadialBasisFunction(2, 1, 30)
+        #elif basis_type == "poly":
+            #self.basis_function = PolynomialBasisFunction(indim, 1)
+        self.num_weights = 30
+        #self.num_weights = self.basis_function.numWeights
         
         self.policy = Policy(self.basis_function, self.num_weights, env)
         self.lstdq  = LSTDQ(self.basis_function, gamma, self.policy)
@@ -31,7 +36,7 @@ class LSPI:
         num_iteration=0
         eps = 1e-5
 
-        #print "policy weights", self.policy.weights
+        #print(f"Training on sample of size {np.shape(sample)}")
 
         while eps < error and num_iteration< total_iterations :
             new_weights = self.lstdq.train_parameter(sample,self.basis_function)
@@ -40,7 +45,7 @@ class LSPI:
             self.policy.weights = new_weights
 
             num_iteration += 1
-            print(f"ITERATION {num_iteration} COMPLETE")
+            #print(f"ITERATION {num_iteration} COMPLETE")
 
         return self.policy
     
@@ -77,8 +82,8 @@ class LSTDQ:
             phi_next = self.basis_function.basisfunc(next_states[i], action)
 
             # ------ABSORBING STATES------#
-            #if rewards[i] == -1:
-                #phi_next *= 0
+            if rewards[i] == -1:
+                phi_next *= 0
 
             loss = (phi - self.gamma * np.array(phi_next))
             phi  = np.resize(phi, [k, 1])

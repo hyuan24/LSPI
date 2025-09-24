@@ -7,10 +7,10 @@ class Policy:
 
     def __init__(self,basis, num_theta, env):
         self.basis_function=basis
-        self.actions = range(env.action_space.n)
+        self.actions = [0,1,2]
 
-        self.weights = np.random.uniform(-1.0, 1.0, size=(num_theta,))
-        #self.weights = np.zeros((num_theta,))
+        #self.weights = np.random.uniform(-1.0, 1.0, size=(num_theta,))
+        self.weights = np.zeros((num_theta,))
 
 
     def q_value_function(self, state, action ):

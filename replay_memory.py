@@ -56,7 +56,7 @@ class Memory:
 
      def select_sample(self,batch_size):
          #print "container size",self.containerSize
-         sample = random.sample(self.container, batch_size)
+         sample = random.sample(self.container, int(batch_size))
          return self.transform_sample(sample)
 
      def clear_memory(self):

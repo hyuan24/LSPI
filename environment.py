@@ -49,11 +49,11 @@ class CartPole3(gym.Env):
         elif self.param == "lagoudakis":
             self.masscart = 8.0 
             self.masspole = 2.0 
-            self.length = 4  
+            self.length = 0.5 
             self.force_mag = 50.0 
             self.tau = 0.1  # seconds between state updates 
             self.theta_threshold_radians = math.pi/2
-            self.x_threshold = 4.8
+            self.x_threshold = np.inf
             self.noise_factor = self.force_mag / 5
         else: ValueError("Invalid param set.")
 
@@ -95,7 +95,8 @@ class CartPole3(gym.Env):
         x, x_dot, theta, theta_dot = self.state
 
         forces = [-self.force_mag, 0, self.force_mag]
-        force = forces[action] + np.random.normal() * self.noise_factor
+        force = forces[action] + np.random.uniform(-10, 10) 
+        #force = forces[action] + np.random.normal() * self.noise_factor
         costheta = np.cos(theta)
         sintheta = np.sin(theta)
 
