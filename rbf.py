@@ -7,19 +7,21 @@ import math
 
 class RadialBasisFunction:
     def __init__(self, indim,  outdim, numWeights):
-        self.indim = 2
-        self.outdim = 1
-        self.numWeights = 30
+        self.indim = indim
+        self.outdim = outdim
+        self.numWeights = numWeights
 
         theta, thetadot = [[-math.pi/4, 0, math.pi/4], [-1, 0, 1]]
 
         self.e_centers = np.array(list(itertools.product(theta, thetadot))) # non-constant centers
+        #print(f"e_centers DIM: {np.shape(self.e_centers)}")
 
         self.beta = 1/2
 
     def basisfunc(self, state, action):
         assert len(state) == self.indim
       
+        #norm_1 = (c-d)/((c**2)+(d**2))**(1/2)
         basis = []
         block = np.zeros(10)
         block[0] = 1  # constant term
@@ -36,14 +38,7 @@ class RadialBasisFunction:
             basis = np.append(np.zeros(20), block) # CHANGED
         else:
             ValueError("Invalid Action in rbf.py basisfunc")
-        '''
-        if action == 0: # TWO ACTIONS
-            basis = np.append(block, np.zeros(10))
-        elif action == 1:
-            basis = np.append(np.zeros(10), block)
-        else:
-            ValueError("Invalid Action in rbf.py basisfunc")
-        '''
+      
         return basis
 
 
@@ -53,7 +48,7 @@ class PolynomialBasisFunction:
       For indim=2, degree=3 -> 10 terms: 1, x1, x2, x1^2, x1 x2, x2^2, x1^3, x1^2 x2, x1 x2^2, x2^3
     """
     def __init__(self, indim, outdim, degree=3):
-        assert indim >= 1
+        #assert indim >= 1
         self.indim = indim
         self.outdim = outdim
         self.degree = degree
@@ -106,7 +101,6 @@ class PolynomialBasisFunction:
 
 
 if __name__ == '__main__':
- 
-    poly = PolynomialBasisFunction(2, 1)
-    print(poly.basisfunc([1, 2], 0))
-
+    print("Hello")
+    rbf = PolynomialBasisFunction(2, 1)
+    print(rbf.numWeights)

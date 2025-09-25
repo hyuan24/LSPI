@@ -14,24 +14,23 @@ from collections import defaultdict
 from tqdm import tqdm
 
 MAX_STEPS=3000
-#EPISODE = 1000 # number of training episodes
-#MEMORY_SIZE= EPISODE * 24
-#BATCH_SIZE = int(EPISODE) * 6 # number of samples used in training
-#TEST_EPS = 100 # LSPI paper did 1000 * 100 episodes
-#SEED = 0
+EPISODE = 1000 # number of training episodes
+MEMORY_SIZE= EPISODE * 24
+BATCH_SIZE = int(EPISODE) * 6 # number of samples used in training
+TEST_EPS = 1000 # LSPI paper did 1000 * 100 episodes
+SEED = 0
 
 LSPI_ITERATION= 20
-#gamma = 0.95
+gamma = 0.95
 
 def test_policy(env, agent, testEps):
    
     #print ("Test")
     all_steps = []
 
-    for j in range(100):
+    for j in range(testEps):
         #if (j + 1) % 1000 == 0:
             #print(f"Test Episode #{j+1}")
-    
         state = env.reset(j)
   
         steps = 0
@@ -49,13 +48,12 @@ def test_policy(env, agent, testEps):
 
     return np.mean(all_steps), final_policy
 
-def training_loop(env, memory, numPol, numEps, numBasis, testEps, basis_type):
+def training_loop(env, memory, numPol, numEps, numBasis, testEps, basisType, alpha):
     all_steps = []
     theta = []
     thetadot = []
-    for j in range(int(500)):
-
-        state = env.reset(1234)
+    for j in range(int(numEps*3/4*numPol)):
+        state = env.reset()
         done = False
         steps = 0
 
@@ -72,39 +70,37 @@ def training_loop(env, memory, numPol, numEps, numBasis, testEps, basis_type):
         #print("END OF EPISODE ",j+1, "- STEPS:" ,steps)
         all_steps.append(steps)
 
-    print(f"DATA COLLECTION COMPLETED. {memory.containerSize} samples collected. Avg episode length: {np.mean(all_steps)}")
+    print(f"DATA COLLECTION COMPLETED. {memory.size()/numPol} * {numPol} episodes collected. Avg episode lengthH: {np.mean(all_steps)}")
     env.close()
     test_steps = []
-    for i in tqdm(range(25)): #env.action_space.n
-        agent = LSPI(3, 10, env, 2)
-        sample = memory.select_sample(int(3000))  # [current_state, actions, rewards, next_state, done]
-        #print(f"Training on sample of size {sample[0].shape}")
+    for i in tqdm(range(numPol)):
+        agent = LSPI(env.action_space.n, numBasis, env, env.observation_space.shape[0], basisType, alpha)
+        sample = memory.select_sample(int(memory.size()//numPol))  # [current_state, actions, rewards, next_state, done]
         _ = agent.train(sample, LSPI_ITERATION)
-        
-        steps, policy = test_policy(env, agent, 100)
+        steps, policy = test_policy(env, agent, testEps)
         test_steps.append(steps)
 
     return np.mean(test_steps)
 
-def experiment_2(numPol, maxEps, testEps, basis_type):
+
+def experiment_2(numPol, maxEps, testEps, basisType, reward, alpha=1.0):
     '''
     numPol: number of policies (with different samples) to train for each sample size
     numEps: maximum number of episodes to train for
     testEps: number of episodes to test each policy for
     '''
-    env = ModifiedCartPoleEnv()
+    env = ModifiedCartPoleEnv(reward)
     action_dim = 1
     obs_dim = 2
     num_basis = 10 # PER BLOCK
     totalAvg = []
 
-    for epSize in np.linspace(500, maxEps, 1):
-        print(f"Memory size: {epSize*9}.")
-        memory = Memory(4500, 1, 2)
+    for epSize in np.linspace(100, maxEps, 3):
+        print(f"SAMPLE SIZE {epSize} EPISODES.")
+        memory = Memory(epSize * 10 * numPol, action_dim,  obs_dim)
         
        
-        steps = training_loop(env, memory, 25, 500, 10, 100, "radial")
-        #f training_loop(env, memory, numPol, numEps, numBasis, testEps, basis_type):
+        steps = training_loop(env, memory, numPol, epSize, num_basis, testEps, basisType, alpha)
         print(f"Avg steps {steps}.")
         totalAvg.append(steps)
 
@@ -113,11 +109,12 @@ def experiment_2(numPol, maxEps, testEps, basis_type):
 
 def main():
 
-    #print(experiment_2(25, 1000, 50))
-    experiment_2(25, 500, 100, "radial")
-    '''
-    results = np.array([25.33, 2498.54, 2653.33, 3000, 3000, 3000, 3000, 3000, 3000, 3000]) 
+    poly = experiment_2(1, 100, 100, "radial", "abs_angle") # 92, 766
 
+    data = np.column_stack((poly,poly))
+    np.savetxt("results.txt", data, header="poly poly", comments='')
+
+    '''
     plt.figure()
     plt.plot(np.linspace(100, 1000,10), results, label='Average episode length')
     plt.xlabel("Training Episodes")
@@ -126,9 +123,8 @@ def main():
     plt.grid(True)
     plt.show() 
     '''
-         
-# 17.4334, 17.4420, 11.9434 (radial), 
-# 6.91088, 8.00192, 7.0058 (poly)
+    
+
 
 
 if __name__ == '__main__':

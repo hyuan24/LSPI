@@ -6,20 +6,20 @@ from policy import Policy
 
 class LSPI:
 
-    def __init__(self, num_actions, num_means, env, indim, basis_type="radial", gamma=0.95):
+    def __init__(self, num_actions, num_means, env, indim, basisType, alpha = 1.0, gamma=0.95):
 
         #print(f"LSPI created with {num_actions} actions, {num_means} bases")
 
-        #self.num_weights = num_means*num_actions
-        if basis_type == "radial":
-            self.basis_function = RadialBasisFunction(2, 1, 30)
-        #elif basis_type == "poly":
-            #self.basis_function = PolynomialBasisFunction(indim, 1)
-        self.num_weights = 30
-        #self.num_weights = self.basis_function.numWeights
-        
+        self.num_weights = num_means*num_actions
+        if basisType == "radial":
+            self.basis_function = RadialBasisFunction(indim, 1, self.num_weights)
+        elif basisType == "poly":
+            self.basis_function = PolynomialBasisFunction(indim, 1)
+        else: 
+            ValueError()
+
         self.policy = Policy(self.basis_function, self.num_weights, env)
-        self.lstdq  = LSTDQ(self.basis_function, gamma, self.policy)
+        self.lstdq  = LSTDQ(self.basis_function, gamma, self.policy, alpha)
 
         self.stop_criterium= 10**-5
         self.gamma = gamma
@@ -36,7 +36,7 @@ class LSPI:
         num_iteration=0
         eps = 1e-5
 
-        #print(f"Training on sample of size {np.shape(sample)}")
+        #print "policy weights", self.policy.weights
 
         while eps < error and num_iteration< total_iterations :
             new_weights = self.lstdq.train_parameter(sample,self.basis_function)
@@ -52,10 +52,11 @@ class LSPI:
 
 
 class LSTDQ:
-    def __init__(self,basis_function, gamma, policy):
+    def __init__(self,basis_function, gamma, policy, alpha):
         self.basis_function = basis_function
         self.gamma = gamma
         self.policy = policy
+        self.alpha = alpha
 
     def train_parameter (self, sample, basis_function ):
         r""" Compute Q value function of current policy
@@ -82,17 +83,16 @@ class LSTDQ:
             phi_next = self.basis_function.basisfunc(next_states[i], action)
 
             # ------ABSORBING STATES------#
-            if rewards[i] == -1:
-                phi_next *= 0
+            #if rewards[i] == -1:
+                #phi_next *= 0
 
             loss = (phi - self.gamma * np.array(phi_next))
             phi  = np.resize(phi, [k, 1])
 
-            #phi = np.resize(phi, [k, 1])
             loss = np.resize(loss, [1, len(loss)])
 
-            A = A + np.dot(phi, loss)
-            b = b + (phi * rewards[i])
+            A = A + self.alpha * np.dot(phi, loss)
+            b = b + self.alpha * (phi * rewards[i])
 
         inv_A = np.linalg.inv(A)
 
