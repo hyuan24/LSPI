@@ -43,6 +43,7 @@ def test_policy(env, agent, testEps):
             state = next_state
             
         all_steps.append(steps)
+        print(f"Test run {j+1}: {steps} steps.")
         
     final_policy = agent.policy
 
@@ -52,7 +53,8 @@ def training_loop(env, memory, numPol, numEps, numBasis, testEps, basisType, alp
     all_steps = []
     theta = []
     thetadot = []
-    for j in range(int(numEps*3/4*numPol)):
+    #for j in range(int(numEps*3/4*numPol)): REVERT LATER
+    for j in range(int(numEps*numPol)):
         state = env.reset()
         done = False
         steps = 0
@@ -95,7 +97,7 @@ def experiment_2(numPol, maxEps, testEps, basisType, reward, alpha=1.0):
     num_basis = 10 # PER BLOCK
     totalAvg = []
 
-    for epSize in np.linspace(100, maxEps, 3):
+    for epSize in np.linspace(300, maxEps, 1):
         print(f"SAMPLE SIZE {epSize} EPISODES.")
         memory = Memory(epSize * 10 * numPol, action_dim,  obs_dim)
         
@@ -109,10 +111,10 @@ def experiment_2(numPol, maxEps, testEps, basisType, reward, alpha=1.0):
 
 def main():
 
-    poly = experiment_2(1, 100, 100, "radial", "abs_angle") # 92, 766
+    test1 = experiment_2(10, 300, 100, "radial", "sutton_barto", alpha=1.0) # 92, 766
 
-    data = np.column_stack((poly,poly))
-    np.savetxt("results.txt", data, header="poly poly", comments='')
+    #data = np.column_stack((poly,poly))
+    #np.savetxt("results.txt", data, header="poly poly", comments='')
 
     '''
     plt.figure()

@@ -31,7 +31,7 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.length = 0.5  # 0.25
         self.polemass_length = self.masspole * self.length
         self.force_mag = 50.0 # 50
-        self.tau = 0.1  # seconds between state updates # 0.1
+        self.tau = 0.125  # seconds between state updates # 0.1
         self.kinematics_integrator = "RK45"
 
         # Angle at which to fail the episode
@@ -119,7 +119,7 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             reward = np.abs(prev_state[0]) - np.abs(self.state[0])
         elif self.reward=="state_norm":
             #print(prev_state)
-            print(np.linalg.norm(self.state))
+            #print(np.linalg.norm(self.state))
             reward = np.linalg.norm(prev_state) - np.linalg.norm(self.state)
         else:
             ValueError()
@@ -174,7 +174,7 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             return [x_dot, x_acc, theta_dot, theta_acc]
             '''
         
-        sol = solve_ivp(cartpole_dynamics, [0, self.tau], self.state, method="RK23", t_eval=[self.tau])
+        sol = solve_ivp(cartpole_dynamics, [0, self.tau], self.state, method="RK45", t_eval=[self.tau])
         return np.array(sol.y[:, -1], dtype=np.float64)
         
 
@@ -182,18 +182,16 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     env1 = ModifiedCartPoleEnv("state_norm")
-    state1 = env1.reset()
-    state2, reward, terminated, _, _ = env1.step(2)
-    print(state1, state2, reward, terminated)
+    #state1 = env1.reset()
+    #state2, reward, terminated, _, _ = env1.step(2)
+    #print(state1, state2, reward, terminated)
     
-    '''
+    
     env2 = gym.make("CartPole-v1")
 
     theta1 = []
     theta2 = []
-    for i in range(5):
-        state = env1.reset(50)
-        print(state)
+ 
 
     for j in range(100):
         state1 = env1.reset()
@@ -226,6 +224,6 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.show()
     
-    '''
+    
     
           
