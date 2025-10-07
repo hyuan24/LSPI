@@ -31,7 +31,7 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.length = 0.5  # 0.25
         self.polemass_length = self.masspole * self.length
         self.force_mag = 50.0 # 50
-        self.tau = 0.125  # seconds between state updates # 0.1
+        self.tau = 0.1215  # seconds between state updates # 0.1
         self.kinematics_integrator = "RK45"
 
         # Angle at which to fail the episode
@@ -216,7 +216,7 @@ if __name__ == "__main__":
              
             state2, reward, done2, info, truncated = env2.step(action)
 
-
+    print(f"Avg steps: {len(theta1)/100}")
     plt.figure()
     plt.plot(range(len(theta1)), theta1, label='Modified RK45 (solve_ivp)')
     plt.plot(range(len(theta2)), theta2, label='CartPole-v1 RK45 (solve_ivp)')

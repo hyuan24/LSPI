@@ -43,7 +43,7 @@ def test_policy(env, agent, testEps):
             state = next_state
             
         all_steps.append(steps)
-        print(f"Test run {j+1}: {steps} steps.")
+        #print(f"Test run {j+1}: {steps} steps.") # REVERT
         
     final_policy = agent.policy
 
@@ -111,7 +111,7 @@ def experiment_2(numPol, maxEps, testEps, basisType, reward, alpha=1.0):
 
 def main():
 
-    test1 = experiment_2(10, 300, 100, "radial", "sutton_barto", alpha=1.0) # 92, 766
+    test1 = experiment_2(10, 100, 100, "radial", "sutton_barto", alpha=1.0) # 92, 766
 
     #data = np.column_stack((poly,poly))
     #np.savetxt("results.txt", data, header="poly poly", comments='')
