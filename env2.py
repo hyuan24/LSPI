@@ -118,8 +118,6 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         elif self.reward=="abs_angle":
             reward = np.abs(prev_state[0]) - np.abs(self.state[0])
         elif self.reward=="state_norm":
-            #print(prev_state)
-            #print(np.linalg.norm(self.state))
             reward = np.linalg.norm(prev_state) - np.linalg.norm(self.state)
         else:
             ValueError()
@@ -141,7 +139,6 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.state = self.np_random.uniform(low=low, high=high, size=(2,))
         self.steps_beyond_terminated = None
 
-        #self.state = np.array(self.state, dtype=np.float64)[[2,3]]
         return self.state
     
     def close(self):
@@ -151,6 +148,10 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
+
+    def set_state(self, state):
+        assert(len(state)==2)
+        self.state = state
 
     def integrate(self, force):
         #state = self.state
@@ -165,14 +166,6 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
                          self.masspole * self.length * theta_dot**2 * np.sin(2 * theta) 
                          / 2 - alpha * costheta * force) / ( (4.0 / 3.0) * self.length - alpha * self.masspole * self.length * costheta**2 )
             return [theta_dot, theta_acc]
-            '''
-            temp = (force + self.polemass_length * theta_dot**2 * sintheta) / self.total_mass
-            theta_acc = (self.gravity * sintheta - costheta * temp) / (
-                self.length * (4.0 / 3.0 - self.masspole * costheta**2 / self.total_mass))
-            x_acc = temp - self.polemass_length * theta_acc * costheta / self.total_mass
-    
-            return [x_dot, x_acc, theta_dot, theta_acc]
-            '''
         
         sol = solve_ivp(cartpole_dynamics, [0, self.tau], self.state, method="RK45", t_eval=[self.tau])
         return np.array(sol.y[:, -1], dtype=np.float64)
@@ -185,41 +178,32 @@ if __name__ == "__main__":
     #state1 = env1.reset()
     #state2, reward, terminated, _, _ = env1.step(2)
     #print(state1, state2, reward, terminated)
-    
-    
-    env2 = gym.make("CartPole-v1")
 
     theta1 = []
     theta2 = []
  
 
-    for j in range(100):
+    for j in range(1000):
         state1 = env1.reset()
-        state2 = env2.reset()
-        state2 = state2[0]
-        #if type(state) == tuple:
-            #state = state[0]
-        done1 = False
-        done2 = False
-        while not done1:
-            theta1.append(state1[0])
+        state = np.random.uniform(low=[-np.pi/2, -6], high=[np.pi/2, 6], size=(2,))
+        env1.set_state(state)
+
+        done = False
+
+        while not done:
+            theta1.append(state[1])
 
             action = env1.action_space.sample()
              
-            state1, reward, done1, info, truncated = env1.step(action)
+            state, reward, done, info, truncated = env1.step(action)
      
-        
-        while not done2:
-            theta2.append(state2[2])
-
-            action = env2.action_space.sample()
-             
-            state2, reward, done2, info, truncated = env2.step(action)
-
-    print(f"Avg steps: {len(theta1)/100}")
+   
+    print(f"Avg steps: {len(theta1)/1000}")
     plt.figure()
-    plt.plot(range(len(theta1)), theta1, label='Modified RK45 (solve_ivp)')
-    plt.plot(range(len(theta2)), theta2, label='CartPole-v1 RK45 (solve_ivp)')
+    #plt.plot(range(len(theta1)), theta1, label='Modified RK45 (solve_ivp)')
+    _, bins, _ = plt.hist(theta1)
+    #print(bins)
+
     plt.legend()
     plt.grid(True)
     plt.show()
