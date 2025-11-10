@@ -7,35 +7,22 @@ from lspi import LSPI, LSTDQ
 import gymnasium as gym
 import numpy as np
 
-from environment import CartPole3 # 3 actions: left, do nothing, right
 from env2 import ModifiedCartPoleEnv
 import matplotlib.pyplot as plt
-from collections import defaultdict
 from tqdm import tqdm
 
-MAX_STEPS=3000
-EPISODE = 1000 # number of training episodes
-MEMORY_SIZE= EPISODE * 24
-BATCH_SIZE = int(EPISODE) * 6 # number of samples used in training
-TEST_EPS = 1000 # LSPI paper did 1000 * 100 episodes
-SEED = 0
-
 LSPI_ITERATION= 20
-gamma = 0.95
 
-def test_policy(env, agent, testEps):
+def test_policy(env, agent, testEps, maxSteps=3000):
    
-    #print ("Test")
     all_steps = []
 
     for j in range(testEps):
-        #if (j + 1) % 1000 == 0:
-            #print(f"Test Episode #{j+1}")
         state = env.reset(j)
   
         steps = 0
         done = False
-        while not done and steps < MAX_STEPS:
+        while not done and steps < maxSteps:
             steps += 1
          
             action=agent._act(state)
@@ -43,29 +30,23 @@ def test_policy(env, agent, testEps):
             state = next_state
             
         all_steps.append(steps)
-        #print(f"Test run {j+1}: {steps} steps.") # REVERT
         
     final_policy = agent.policy
 
     return np.mean(all_steps), final_policy
 
-def training_loop(env, memory, numPol, numEps, numBasis, testEps, basisType, alpha):
+
+def collect_data(env, memory, maxEps, numPol):
     all_steps = []
-    theta = []
-    thetadot = []
-    #for j in range(int(numEps*3/4*numPol)): REVERT LATER
-    for j in range(int(numEps*numPol)):
+    for _ in range(int(maxEps*numPol)):
         state = env.reset()
         done = False
         steps = 0
 
         while not done:
-            theta.append(state[0]) # track changes in angle and angular velocity for comparison w/ gymnasium CartPole
-            thetadot.append(state[1])
             steps += 1
             action = env.action_space.sample()
-            next_state, reward, done, info, truncated = env.step(action)
-            #if not done: # CHANGED!!
+            next_state, reward, done, _, _ = env.step(action)
             memory.add([state, action, reward, next_state, done])
             state = next_state
           
@@ -74,18 +55,26 @@ def training_loop(env, memory, numPol, numEps, numBasis, testEps, basisType, alp
 
     print(f"DATA COLLECTION COMPLETED. {memory.size()/numPol} * {numPol} episodes collected. Avg episode lengthH: {np.mean(all_steps)}")
     env.close()
+    return memory, np.mean(all_steps)
+
+
+def training_loop(env, memory, numPol, numEps, avg_random_steps, numBasis, testEps, basisType, alpha):
+  
+    # memory object should have samples in it!!
+
     test_steps = []
-    for i in tqdm(range(numPol)):
+
+    for _ in tqdm(range(numPol)):
         agent = LSPI(env.action_space.n, numBasis, env, env.observation_space.shape[0], basisType, alpha)
-        sample = memory.select_sample(int(memory.size()//numPol))  # [current_state, actions, rewards, next_state, done]
+        sample = memory.select_sample(round(numEps*avg_random_steps))  # [current_state, actions, rewards, next_state, done]
         _ = agent.train(sample, LSPI_ITERATION)
-        steps, policy = test_policy(env, agent, testEps)
+        steps, _ = test_policy(env, agent, testEps)
         test_steps.append(steps)
 
     return np.mean(test_steps)
 
 
-def experiment_2(numPol, maxEps, testEps, basisType, reward, alpha=1.0):
+def experiment_2(numPol, maxEps, testEps, basisType="radial", reward="sutton_barto", alpha=1.0):
     '''
     numPol: number of policies (with different samples) to train for each sample size
     numEps: maximum number of episodes to train for
@@ -97,12 +86,13 @@ def experiment_2(numPol, maxEps, testEps, basisType, reward, alpha=1.0):
     num_basis = 10 # PER BLOCK
     totalAvg = []
 
-    for epSize in np.linspace(300, maxEps, 1):
-        print(f"SAMPLE SIZE {epSize} EPISODES.")
-        memory = Memory(epSize * 10 * numPol, action_dim,  obs_dim)
+    memory = Memory(maxEps * 10 * numPol, action_dim, obs_dim)  
+    memory, avg_random_steps = collect_data(env, memory, maxEps, numPol)
+
+    for epSize in np.linspace(200, maxEps, 2):
+        print(f"Sample size: {epSize} episodes.")
         
-       
-        steps = training_loop(env, memory, numPol, epSize, num_basis, testEps, basisType, alpha)
+        steps = training_loop(env, memory, numPol, epSize, avg_random_steps, num_basis, testEps, basisType, alpha)
         print(f"Avg steps {steps}.")
         totalAvg.append(steps)
 
@@ -111,7 +101,7 @@ def experiment_2(numPol, maxEps, testEps, basisType, reward, alpha=1.0):
 
 def main():
 
-    test1 = experiment_2(10, 100, 100, "radial", "sutton_barto", alpha=1.0) # 92, 766
+    test1 = experiment_2(10, 300, 100, "radial", "sutton_barto", alpha=1.0) 
 
     #data = np.column_stack((poly,poly))
     #np.savetxt("results.txt", data, header="poly poly", comments='')
@@ -127,12 +117,13 @@ def main():
     '''
     
 
-
-
 if __name__ == '__main__':
     main()
 
 
 
 
-
+"""
+SAMPLE SIZE 200.0 EPISODES. Avg steps 1822.42.
+SAMPLE SIZE 300.0 EPISODES. sAvg steps 2611.5620000000004.
+"""
