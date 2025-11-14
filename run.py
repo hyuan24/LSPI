@@ -10,6 +10,7 @@ import numpy as np
 from env2 import ModifiedCartPoleEnv
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import seaborn as sns
 
 LSPI_ITERATION= 20
 
@@ -98,11 +99,47 @@ def experiment_2(numPol, maxEps, testEps, basisType="radial", reward="sutton_bar
 
     return totalAvg
 
+def plot_actions(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1.0):
+   
+    env = ModifiedCartPoleEnv(reward)
+    action_dim = 1
+    obs_dim = 2
+    num_basis = 10 # PER BLOCK
+
+    memory = Memory(numEps * 10, action_dim, obs_dim)  
+    memory, avg_random_steps = collect_data(env, memory, numEps, 1)
+    agent = LSPI(env.action_space.n, num_basis, env, env.observation_space.shape[0], basisType, alpha)
+    sample = memory.select_sample(round(numEps*avg_random_steps))  # [current_state, actions, rewards, next_state, done]
+    _ = agent.train(sample, LSPI_ITERATION)
+
+    A = np.zeros([numTicks, numTicks])
+    actions = [0,1,2]
+    weights = agent.policy.weights
+
+    angles = np.linspace(-np.pi/2, np.pi/2, numTicks)
+    angle_dots = np.linspace(-5, 5, numTicks)
+
+    for i, a in enumerate(angles):
+        for j, ad in enumerate(angle_dots):
+            state = [a,ad] 
+            qs = [np.dot(agent.policy.basis_function.basisfunc(state, ac), weights) for ac in actions]
+            A[i,j] = np.argmax(qs)
+        
+    #plt.figure(figsize=(8, 6)) 
+    ax = sns.heatmap(A.T, fmt=".1f", cmap="viridis", linewidths=.5)
+    #ax.set_xticks(angles)
+    #ax.set_yticks(angle_dots)
+    plt.title("learned actions")
+    plt.show()
+        
+  
+
+   
 
 def main():
 
-    test1 = experiment_2(10, 300, 100, "radial", "sutton_barto", alpha=1.0) 
-
+    #test1 = experiment_2(10, 300, 100, "radial", "sutton_barto", alpha=1.0) 
+    plot_actions(300, 50)
     #data = np.column_stack((poly,poly))
     #np.savetxt("results.txt", data, header="poly poly", comments='')
 
