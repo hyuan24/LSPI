@@ -6,41 +6,70 @@ import numpy as np
 import math
 
 class RadialBasisFunction:
-    def __init__(self, indim,  outdim, numWeights):
+    def __init__(self, indim,  outdim):
         self.indim = indim
         self.outdim = outdim
-        self.numWeights = numWeights
+        self.numWeights = 30
 
-        theta, thetadot = [[-math.pi/4, 0, math.pi/4], [-1, 0, 1]]
+        #theta, thetadot = [[-math.pi/4, 0, math.pi/4], [-1, 0, 1]]
+        theta, thetadot = [[-1, 0, 1], [-1, 0, 1]]
 
         self.e_centers = np.array(list(itertools.product(theta, thetadot))) # non-constant centers
-        #print(f"e_centers DIM: {np.shape(self.e_centers)}")
+        self.action_centers = np.array([0.75,1.25])
 
         self.beta = 1/2
+        self.action_beta = 1/2
+        self.action_A = 1
 
     def basisfunc(self, state, action):
         assert len(state) == self.indim
       
-        #norm_1 = (c-d)/((c**2)+(d**2))**(1/2)
-        basis = []
-        block = np.zeros(10)
+        block = np.zeros(len(self.e_centers)+1)
         block[0] = 1  # constant term
+        for i, c in enumerate(self.e_centers):
+            block[i+1] = np.exp(-self.beta * np.linalg.norm(state - c)**2)
+    
+        action_block = np.zeros(len(self.action_centers) +1)
+        action_block[0] = 1
+        for i, c in enumerate(self.action_centers):
+            action_block[i+1] = self.action_A * np.exp(-self.action_beta * (action - c)**2)
+     
+        prod_grid = block[:, None] * action_block[None, :]
+        basis = prod_grid.ravel()
+
+        return basis
+    
+    def grad_s(self, state, action):
+
+        block = np.zeros([len(self.e_centers)+1,self.indim])
+        for i, c in enumerate(self.e_centers):
+            block[i+1,] = (c - state) * np.exp(-self.beta * np.linalg.norm(state - c)**2)
+
+        action_block = np.zeros([len(self.action_centers)+1,1])
+        action_block[0]=1
+        for i, c in enumerate(self.action_centers):
+            action_block[i+1] = self.action_A * np.exp(-self.action_beta * (action - c)**2)
+
+        prod_grid = block[:, None] * action_block[None, :]
+        grad = prod_grid.reshape(-1,2)
+
+        return grad
+
+    def grad_a(self, state, action):
+
+        block = np.zeros([len(self.e_centers)+1,1])
+        block[0] = 1
         for i, c in enumerate(self.e_centers):
             block[i+1] = np.exp(-self.beta * np.linalg.norm(c - state)**2)
 
-        #print(block)
-        
-        if action == 0: # THREE ACTIONS
-            basis = np.append(block, np.zeros(20))
-        elif action == 1:
-            basis = np.append(np.append(np.zeros(10), block), np.zeros(10))
-        elif action == 2:
-            basis = np.append(np.zeros(20), block) # CHANGED
-        else:
-            ValueError("Invalid Action in rbf.py basisfunc")
-      
-        return basis
+        action_block = np.zeros([len(self.action_centers)+1,1])
+        for i, c in enumerate(self.action_centers):
+            action_block[i+1] = (c-action) * self.action_A * np.exp(-self.action_beta * (action - c)**2)
 
+        prod_grid = block[:, None] * action_block[None, :]
+        grad = prod_grid.ravel()
+
+        return grad
 
 class PolynomialBasisFunction:
     """
@@ -50,7 +79,7 @@ class PolynomialBasisFunction:
     def __init__(self, indim, outdim, degree=3):
         #assert indim >= 1
         self.indim = indim
-        self.outdim = outdim
+        #self.outdim = outdim
         self.degree = degree
  
         self.exponents = []
@@ -101,6 +130,8 @@ class PolynomialBasisFunction:
 
 
 if __name__ == '__main__':
-    print("Hello")
-    rbf = PolynomialBasisFunction(2, 1)
-    print(rbf.numWeights)
+    #print("Hello")
+    rbf = RadialBasisFunction(2, 1)
+    
+    print(rbf.basisfunc([0.5, -3], 2))
+    print(rbf.grad_s([0.5, -3], 2))

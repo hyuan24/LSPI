@@ -5,13 +5,13 @@ import numpy as np
 
 class Policy:
 
-    def __init__(self,basis, num_theta, env):
+    def __init__(self,basis, num_theta, env, eps_greedy=1):
         self.basis_function=basis
         self.actions = range(env.action_space.n)
-
-        #self.weights = np.random.uniform(-1.0, 1.0, size=(num_theta,))
-        self.weights = np.zeros((num_theta,))
-
+        self.env = env
+        #self.weights = np.random.normal(0, 1, size=(num_theta,))
+        self.weights = np.zeros((num_theta,)) # MODIFIED
+        self.eps_greedy  = eps_greedy
 
     def q_value_function(self, state, action ):
         vector_basis = self.basis_function.basisfunc(state, action)
@@ -26,8 +26,10 @@ class Policy:
         q_max = np.max(q_state_action)
 
         best_actions = [i for i, q in enumerate(q_state_action) if q == q_max]
-
-        return best_actions
+        if np.random.uniform(0,1) <= self.eps_greedy:
+            return np.random.choice(best_actions)
+        else:
+            return self.env.action_space.sample()
 
 
 

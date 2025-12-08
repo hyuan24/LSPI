@@ -20,7 +20,7 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
     }
 
     def __init__(
-        self, reward: string = "sutton_barto", render_mode: str | None = None
+        self, reward: string = "dense", render_mode: str | None = None
     ):
         self.reward = reward
         self.param = "lagoudakis"
@@ -31,7 +31,7 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.length = 0.5  # 0.25
         self.polemass_length = self.masspole * self.length
         self.force_mag = 50.0 # 50
-        self.tau = 0.1215  # seconds between state updates # 0.1
+        self.tau = 0.1225  # seconds between state updates # 0.1
         self.kinematics_integrator = "RK45"
 
         # Angle at which to fail the episode
@@ -66,36 +66,34 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.steps_beyond_terminated = None
 
     def step(self, action):
+        
         assert self.action_space.contains(
             action
         ), f"{action!r} ({type(action)}) invalid"
         assert self.state is not None, "Call reset before using step method."
 
-        theta, theta_dot = self.state
-        #theta, theta_dot = self.state
-        forces = [-self.force_mag, 0, self.force_mag]
-    
-        force_noise = np.random.uniform(-10, 10)
-
-        #force_noise = np.random.normal(scale=5)
-        force = forces[action] + force_noise
-        
-        costheta = np.cos(theta)
-        sintheta = np.sin(theta)
-
-        prev_state = self.state
-        #print(prev_state)
-
-        self.state = self.integrate(force)
+        reward = (np.abs(self.state[0]) <= math.pi/2) - 1
         theta, _ = self.state
-        
-        #self.state = np.array((x, x_dot, theta, theta_dot), dtype=np.float64)
 
         terminated = bool(
             theta < -self.theta_threshold_radians
             or theta > self.theta_threshold_radians
         )
+
+
+        # --- UPDATE STATE --- # 
+        forces = [-self.force_mag, 0, self.force_mag]  
+        force_noise = np.random.uniform(-10, 10)
+        force = forces[action] + force_noise
+
+        prev_state = self.state
+
+        self.state = self.integrate(force)
+        theta, _ = self.state
+        
+    
         if self.reward=="sutton_barto":
+            """
             if not terminated:
                 reward = 0.0 
             elif self.steps_beyond_terminated is None:
@@ -110,7 +108,12 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
                     )
                 self.steps_beyond_terminated += 1
                 reward = -1.0 
-      
+            """
+            reward = reward
+            
+        elif self.reward=="dense":
+            reward = np.cos(prev_state[0])-1
+
         elif self.reward=="sq_angle": # REWARD SCHEMES FROM pendulum_simulator.m
             reward = (prev_state[0] * 2 / np.pi) ** 2 - (self.state[0] * 2 / np.pi) ** 2
         elif self.reward=="abs_angle_normalized":
@@ -170,11 +173,10 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         sol = solve_ivp(cartpole_dynamics, [0, self.tau], self.state, method="RK45", t_eval=[self.tau])
         return np.array(sol.y[:, -1], dtype=np.float64)
         
-
-if __name__ == "__main__":
+def main():
     import matplotlib.pyplot as plt
 
-    env1 = ModifiedCartPoleEnv("state_norm")
+    env1 = ModifiedCartPoleEnv("dense")
     #state1 = env1.reset()
     #state2, reward, terminated, _, _ = env1.step(2)
     #print(state1, state2, reward, terminated)
@@ -183,31 +185,62 @@ if __name__ == "__main__":
     theta2 = []
  
 
-    for j in range(1000):
-        state1 = env1.reset()
-        state = np.random.uniform(low=[-np.pi/2, -6], high=[np.pi/2, 6], size=(2,))
-        env1.set_state(state)
-
+    for j in range(500):
+        state = env1.reset()
         done = False
-
         while not done:
-            theta1.append(state[1])
+            
+        
+
+    
+
+        
+            #state = np.random.uniform(low=[-np.pi/2, -6], high=[np.pi/2, 6], size=(2,))
+            #env1.set_state(state)
+
+            theta1.append(state[0])
+            theta2.append(state[1])
 
             action = env1.action_space.sample()
              
             state, reward, done, info, truncated = env1.step(action)
+
+            #theta1.append(state[0])
+        
+        theta1.append(state[0])
+        theta2.append(state[1])
+
+            #theta1.append(state[0])
+            #reward1.append(reward)
+    #print(reward)
+            
      
    
     print(f"Avg steps: {len(theta1)/1000}")
+
     plt.figure()
     #plt.plot(range(len(theta1)), theta1, label='Modified RK45 (solve_ivp)')
-    _, bins, _ = plt.hist(theta1)
+    #plt.plot(range(len(theta1)), theta1, label="angle")
+    #plt.plot(range(len(theta1)), reward1, label="reward")
+
+    theta_norm = [(theta1[i] - np.mean(theta1))/np.std(theta1) for i in range(len(theta1))] 
+    theta2_norm = [(theta2[i] - np.mean(theta2))/np.std(theta2) for i in range(len(theta2))]
+     
+    #plt.hist(theta_norm)
+    #plt.hist(theta2_norm)
     #print(bins)
 
     plt.legend()
     plt.grid(True)
     plt.show()
+
+if __name__ == "__main__":
+    main()
+
+
+    
+   
     
     
     
-          
+        
