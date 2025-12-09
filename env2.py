@@ -71,29 +71,16 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         ), f"{action!r} ({type(action)}) invalid"
         assert self.state is not None, "Call reset before using step method."
 
-        theta, theta_dot = self.state
-        #theta, theta_dot = self.state
+        prev_theta, _ = self.state
         forces = [-self.force_mag, 0, self.force_mag]
-    
         force_noise = np.random.uniform(-10, 10)
-
-        #force_noise = np.random.normal(scale=5)
         force = forces[action] + force_noise
-        
-        costheta = np.cos(theta)
-        sintheta = np.sin(theta)
-
-        prev_state = self.state
-        #print(prev_state)
-
+    
         self.state = self.integrate(force)
-        theta, _ = self.state
         
-        #self.state = np.array((x, x_dot, theta, theta_dot), dtype=np.float64)
-
         terminated = bool(
-            theta < -self.theta_threshold_radians
-            or theta > self.theta_threshold_radians
+            prev_theta < -self.theta_threshold_radians
+            or prev_theta > self.theta_threshold_radians
         )
         if self.reward=="sutton_barto":
             if not terminated:
@@ -110,15 +97,8 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
                     )
                 self.steps_beyond_terminated += 1
                 reward = -1.0 
-      
-        elif self.reward=="sq_angle": # REWARD SCHEMES FROM pendulum_simulator.m
-            reward = (prev_state[0] * 2 / np.pi) ** 2 - (self.state[0] * 2 / np.pi) ** 2
-        elif self.reward=="abs_angle_normalized":
-            reward = np.abs(prev_state[0] * 2 / np.pi) - np.abs(self.state[0] * 2 / np.pi)
-        elif self.reward=="abs_angle":
-            reward = np.abs(prev_state[0]) - np.abs(self.state[0])
-        elif self.reward=="state_norm":
-            reward = np.linalg.norm(prev_state) - np.linalg.norm(self.state)
+        elif self.reward=="dense":
+            reward = np.cos(prev_theta)-1
         else:
             ValueError()
         
@@ -150,8 +130,11 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             self.isopen = False
 
     def set_state(self, state):
-        assert(len(state)==2)
-        self.state = state
+        if len(state)==1:
+            self.state[0] = state[0]
+        if len(state)==2:
+            self.state = state
+        return self.state
 
     def integrate(self, force):
         #state = self.state

@@ -20,14 +20,13 @@ class Policy:
     def get_actions(self, state):
 
         q_state_action=[self.q_value_function(state,a) for a in self.actions]
-        q_state_action = np.reshape(q_state_action,[len(q_state_action),1])# convert to column vector
+        #q_state_action = np.reshape(q_state_action,[len(q_state_action),1])# convert to column vector
 
-        index = np.argmax(q_state_action)
         q_max = np.max(q_state_action)
 
         best_actions = [i for i, q in enumerate(q_state_action) if q == q_max]
 
-        return best_actions
+        return np.random.choice(best_actions)
 
 
 
