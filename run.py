@@ -54,7 +54,7 @@ def collect_data(env, memory, maxEps, numPol):
         #print("END OF EPISODE ",j+1, "- STEPS:" ,steps)
         all_steps.append(steps)
 
-    print(f"DATA COLLECTION COMPLETED. {memory.size()/numPol} * {numPol} episodes collected. Avg episode lengthH: {np.mean(all_steps)}")
+    print(f"DATA COLLECTION COMPLETED. {memory.size()/numPol} * {numPol} episodes collected. Avg episode length: {np.mean(all_steps)}")
     env.close()
     return memory, np.mean(all_steps)
 
@@ -144,13 +144,58 @@ def plot_actions(numEps, numTicks, numPol, basisType="radial", reward="sutton_ba
     plt.show()
         
   
+def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1.0):
+   
+    env = ModifiedCartPoleEnv(reward)
+    action_dim = 1
+    obs_dim = 2
+    num_basis = 10 # PER BLOCK
+
+    memory = Memory(numEps * 10, action_dim, obs_dim)  
+    memory, avg_random_steps = collect_data(env, memory, numEps, 1)
+
+    actions = [0,1,2]
+    angles = np.linspace(-np.pi/2, np.pi/2, numTicks)
+    angles_dot = np.linspace(-5, 5, numTicks)
+
+
+    Qs = []
+   
+    for k in range(len(actions)): # one plot per action
+        agent = LSPI(env.action_space.n, num_basis, env, env.observation_space.shape[0], basisType, alpha)
+        sample = memory.select_sample(round(numEps*avg_random_steps))  # [current_state, actions, rewards, next_state, done]
+        _ = agent.train(sample, LSPI_ITERATION)
+        weights = agent.policy.weights
+
+        Q = np.zeros([numTicks,numTicks])
+
+        for i, a in enumerate(angles):
+            for j, ad in enumerate(angles_dot):
+                state = [a,ad] 
+                q = np.dot(agent.policy.basis_function.basisfunc(state, actions[k]), weights)
+                Q[i,j] =q
+        Qs.append(Q)
+
+    fig, axs = plt.subplots(1,3,figsize=(4,4))
+    
+    for k, (ax,Q) in enumerate(zip(axs,Qs)):
+        im = ax.imshow(Q, origin="lower",extent=[angles[0], angles[-1], angles_dot[0], angles_dot[-1]], aspect='auto')
+        if k ==0:
+            ax.set_ylabel("angular velocity (rad/s)")
+        ax.set_xlabel("angle (rad)")
+        ax.set_title(f"action {actions[k]}")
+    
+    fig.colorbar(im, ax=axs.ravel().tolist(), label="pi(angle, angular velocity)")
+    #plt.tight_layout()
+    plt.show()
 
    
 
 def main():
 
     #test1 = experiment_2(10, 300, 100, "radial", "sutton_barto", alpha=1.0) 
-    plot_actions(500, 100, 4)
+    #plot_actions(500, 100, 4)
+    plot_qs(400, 200, "radial", "sutton_barto")
     #data = np.column_stack((poly,poly))
     #np.savetxt("results.txt", data, header="poly poly", comments='')
 
