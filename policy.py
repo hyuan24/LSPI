@@ -9,7 +9,7 @@ class Policy:
         self.basis_function=basis
         self.actions = range(env.action_space.n)
 
-        #self.weights = np.random.uniform(-1.0, 1.0, size=(num_theta,))
+        #self.weights = np.random.normal(0, 1, size=(num_theta,))
         self.weights = np.zeros((num_theta,))
 
 
@@ -20,7 +20,6 @@ class Policy:
     def get_actions(self, state):
 
         q_state_action=[self.q_value_function(state,a) for a in self.actions]
-        #q_state_action = np.reshape(q_state_action,[len(q_state_action),1])# convert to column vector
 
         q_max = np.max(q_state_action)
 

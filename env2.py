@@ -20,7 +20,7 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
     }
 
     def __init__(
-        self, reward: string = "sutton_barto", render_mode: str | None = None
+        self, reward: string = "sutton_barto", tau: float=0.1215, render_mode: str | None = None
     ):
         self.reward = reward
         self.param = "lagoudakis"
@@ -31,7 +31,7 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.length = 0.5  # 0.25
         self.polemass_length = self.masspole * self.length
         self.force_mag = 50.0 # 50
-        self.tau = 0.1215  # seconds between state updates # 0.1
+        self.tau = tau  # seconds between state updates # 0.1
         self.kinematics_integrator = "RK45"
 
         # Angle at which to fail the episode
@@ -150,13 +150,15 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
                          / 2 - alpha * costheta * force) / ( (4.0 / 3.0) * self.length - alpha * self.masspole * self.length * costheta**2 )
             return [theta_dot, theta_acc]
         
-        sol = solve_ivp(cartpole_dynamics, [0, self.tau], self.state, method="RK45", t_eval=[self.tau])
+        sol = solve_ivp(cartpole_dynamics, [0, self.tau], self.state, method="RK45", t_eval=[self.tau], max_step=0.01215)
         return np.array(sol.y[:, -1], dtype=np.float64)
         
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
+    env = ModifiedCartPoleEnv()
+    env.reset()
+    env.integrate(50)
+    """
     env1 = ModifiedCartPoleEnv("state_norm")
     #state1 = env1.reset()
     #state2, reward, terminated, _, _ = env1.step(2)
@@ -190,6 +192,10 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid(True)
     plt.show()
+    """
+    import matplotlib.pyplot as plt
+
+   
     
     
     
