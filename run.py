@@ -13,7 +13,7 @@ from tqdm import tqdm
 import seaborn as sns
 
 LSPI_ITERATION= 20
-GAMMA=0.9
+GAMMA=0.975
 
 def test_policy(env, agent, testEps, maxSteps=30000):
     #plot_actions(0,200,3, "none", "none", 1, False, False, True, agent)
@@ -235,7 +235,7 @@ def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1
 
 def main():
 
-    test1 = experiment_2(10, [500,900], 10, "radial", "dense", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215) 
+    test1 = experiment_2(10, [800,800], 10, "radial", "dense", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) 
     
     #plot_actions(500, 200, 3, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True)
  
