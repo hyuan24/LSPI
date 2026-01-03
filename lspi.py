@@ -6,7 +6,7 @@ from policy import Policy
 
 class LSPI:
 
-    def __init__(self, env, indim, basisType, alpha = 1.0, gamma=0.95, fancyBasis=False, phibeUpdate=False):
+    def __init__(self, env, indim, basisType, alpha, gamma, fancyBasis=False, phibeUpdate=False):
 
         #print(f"LSPI created with {num_actions} actions, {num_means} bases")
 

@@ -13,6 +13,7 @@ from tqdm import tqdm
 import seaborn as sns
 
 LSPI_ITERATION= 20
+GAMMA=0.9
 
 def test_policy(env, agent, testEps, maxSteps=30000):
     #plot_actions(0,200,3, "none", "none", 1, False, False, True, agent)
@@ -38,7 +39,7 @@ def test_policy(env, agent, testEps, maxSteps=30000):
 
     final_policy = agent.policy
     print(f"Policy ran {np.mean(all_steps)} steps and accumulated reward {np.mean(cum_rewards)}")
-    return np.mean(all_steps), final_policy
+    return np.mean(all_steps), np.mean(cum_rewards)
 
 
 def collect_data(env, memory, numEps, numPol):
@@ -88,13 +89,15 @@ def training_loop(env, testEnv, memory, numPol, numEps, avg_random_steps, testEp
     # memory object should have samples in it!!
 
     test_steps = []
+    #test_rewards = []
 
     for _ in tqdm(range(numPol)):
-        agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, 0.95, fancyBasis, phibeUpdate=phibeUpdate)
+        agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, GAMMA, fancyBasis, phibeUpdate=phibeUpdate)
         sample = memory.select_sample(round(numEps*avg_random_steps))  # [current_state, actions, rewards, next_state, done]
         _ = agent.train(sample, LSPI_ITERATION)
         steps, _ = test_policy(testEnv, agent, testEps)
         test_steps.append(steps)
+        #test_rewards.append(rewards)
 
     return np.mean(test_steps)
 
@@ -146,7 +149,7 @@ def plot_actions(numEps, numTicks, numPol, basisType="radial", reward="sutton_ba
    
     for _ in range(numPol):
         if useAgent is None:
-            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=0.95, fancyBasis=fancyBasis, phibeUpdate=phibeUpdate)
+            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=GAMMA, fancyBasis=fancyBasis, phibeUpdate=phibeUpdate)
             sample = memory.select_sample(round(numEps*avg_random_steps))  # [current_state, actions, rewards, next_state, done]
             _ = agent.train(sample, LSPI_ITERATION)
         else:
@@ -195,11 +198,11 @@ def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1
 
     for k in range(len(actions)): # one plot per action
         if not phibeUpdate or type=="phibe_estimate":
-            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=0.95, fancyBasis=fancyBasis)
+            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=GAMMA, fancyBasis=fancyBasis)
             _ = agent.train(sample, LSPI_ITERATION)
             weights = agent.policy.weights
         else:
-            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=0.95, fancyBasis=fancyBasis, phibeUpdate=phibeUpdate)
+            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=GAMMA, fancyBasis=fancyBasis, phibeUpdate=phibeUpdate)
             _ = agent.train(sample, LSPI_ITERATION)
             weights = agent.policy.weights
         
@@ -232,7 +235,7 @@ def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1
 
 def main():
 
-    test1 = experiment_2(10, [500,500], 10, "radial", "dense", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215) 
+    test1 = experiment_2(10, [500,900], 10, "radial", "dense", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215) 
     
     #plot_actions(500, 200, 3, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True)
  
