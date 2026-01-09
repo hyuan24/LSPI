@@ -2,23 +2,21 @@ from matplotlib import pyplot as pl
 
 from replay_memory import Memory
 #from gym.monitoring.video_recorder import VideoRecorder
-from policy import Policy
-from lspi import LSPI, LSTDQ
-import gymnasium as gym
+from lspi import LSPI
 import numpy as np
 
 from env2 import ModifiedCartPoleEnv
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import seaborn as sns
+
 
 LSPI_ITERATION= 20
 GAMMA=0.975
 
-def test_policy(env, agent, testEps, maxSteps=30000):
+def test_policy(env, agent, testEps, maxSteps=50000):
     #plot_actions(0,200,3, "none", "none", 1, False, False, True, agent)
     all_steps = []
-    cum_rewards = []
+    perstep_rewards = []
     for j in range(testEps):
         cum_reward = 0
         state = env.reset(j)
@@ -35,11 +33,11 @@ def test_policy(env, agent, testEps, maxSteps=30000):
             state = next_state
             
         all_steps.append(steps)
-        cum_rewards.append(cum_reward)
+        perstep_rewards.append(cum_reward/steps)
 
-    final_policy = agent.policy
-    print(f"Policy ran {np.mean(all_steps)} steps and accumulated reward {np.mean(cum_rewards)}")
-    return np.mean(all_steps), np.mean(cum_rewards)
+    #final_policy = agent.policy
+    print(f"Policy ran {np.mean(all_steps)} steps and accumulated {np.mean(perstep_rewards)} per step")
+    return np.mean(all_steps), np.mean(perstep_rewards)
 
 
 def collect_data(env, memory, numEps, numPol):
@@ -89,17 +87,19 @@ def training_loop(env, testEnv, memory, numPol, numEps, avg_random_steps, testEp
     # memory object should have samples in it!!
 
     test_steps = []
+    test_rewards = []
     #test_rewards = []
 
     for _ in tqdm(range(numPol)):
         agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, GAMMA, fancyBasis, phibeUpdate=phibeUpdate)
         sample = memory.select_sample(round(numEps*avg_random_steps))  # [current_state, actions, rewards, next_state, done]
         _ = agent.train(sample, LSPI_ITERATION)
-        steps, _ = test_policy(testEnv, agent, testEps)
+        steps, reward = test_policy(testEnv, agent, testEps)
         test_steps.append(steps)
-        #test_rewards.append(rewards)
+        test_rewards.append(reward)
+        
 
-    return np.mean(test_steps)
+    return np.mean(test_steps), np.mean(test_rewards)
 
 
 def experiment_2(numPol, epRange, testEps, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=False, phibeUpdate=False, testTau=0.1215):
@@ -124,8 +124,8 @@ def experiment_2(numPol, epRange, testEps, basisType="radial", reward="sutton_ba
     for epSize in np.linspace(minEps, maxEps, int((maxEps-minEps)/100)+1):
         print(f"Sample size: {epSize} episodes.")
         
-        steps = training_loop(env, testEnv, memory, numPol, int(epSize), avg_random_steps, testEps, basisType, alpha, fancyBasis, phibeUpdate)
-        print(f"Avg steps {steps}.")
+        steps, rew = training_loop(env, testEnv, memory, numPol, int(epSize), avg_random_steps, testEps, basisType, alpha, fancyBasis, phibeUpdate)
+        print(f"Avg steps {steps}. Avg reward {rew} per step")
         totalAvg.append(steps)
 
     return totalAvg
@@ -235,12 +235,21 @@ def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1
 
 def main():
 
-    test1 = experiment_2(10, [800,800], 10, "radial", "dense", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) 
+    _ = experiment_2(30, [1000,1000], 60, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215) 
+
+    _ = experiment_2(30, [1000,1000], 60, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) 
     
-    #plot_actions(500, 200, 3, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True)
+    #plot_actions(1000, 200, 3, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True)
  
     #plot_qs(500,100, "radial", "dense", 1.0, False, True, True, "learned_qs")
-    # about -28
+    # For example: tr_t/ts_t = 20, 50, 100.
+    # 20: PhiBE Avg steps 45013.625. Avg reward -0.03529980115395789 per step vs LSPI Avg steps 35029.125. Avg reward -0.0870531651155179 per step
+    # 50: PhiBE Avg steps 42563.409999999996. Avg reward -0.03916390261548118 per step vs LSPI Avg steps 40048.81. Avg reward -0.0600869443077147 per step
+    # 100: PhiBE Avg steps 45824.41499999999. Avg reward -0.025315581134487626 per step vs LSPI Avg steps 40096.935000000005. Avg reward -0.060846668387275746 per step
+    # 20: PhiBE Avg steps 45028.735. Avg reward -0.024372863134196326 per step vs LSPI Avg steps 40019.28777777777. Avg reward -0.061215910633776814 per step
+    # 50: PhiBE Avg steps 47407.70611111111. Avg reward -0.020790113927377164 per step vs LSPI Avg steps 41706.883888888886. Avg reward -0.05177501100404373 per step
+    # 100: PhiBE Avg steps 49289.10555555556. Avg reward -0.013150961630736212 per step vs LSPI Avg steps 33493.38166666667. Avg reward -0.09373054556209852 per step
+    # 10: PhiBE Avg steps 45008.650555555556. Avg reward -0.02894617528464123 per step vs LSPI Avg steps 33349.72777777778. Avg reward -0.09781657590748873 per step
     '''
     plt.figure()
     plt.plot(np.linspace(100, 1000,10), results, label='Average episode length')
