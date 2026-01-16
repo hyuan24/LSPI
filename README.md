@@ -1,19 +1,12 @@
 # Least-Squares Policy Iteration
 
-Implementation of LSPI (Lagoudakis and Parr) from (https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf). LSPI is an approximate model-free policy iteration method. In this case, it uses a linear architecture with radial basis functions to approximate the Q-values. 
+Implementation of LSPI (Lagoudakis and Parr) from [https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf]. LSPI is an approximate model-free policy iteration method which uses a linear architecture with radial basis functions to approximate the Q-values. 
 
-LSTDQ (in lspi.py) iteratively updates the weights of the Q-value approximation using least-squares fixed-point approximation. LSPI (lspi.py) is essentially a main training loop that repeatedly calls LSTDQ for policy evaluation. 
+LSTDQ (in lspi.py) iteratively updates the weights of the Q-value approximation using least-squares fixed-point approximation. In particular, here we modify the update based on the PhiBE framework, which proposes a new differential equation-based Bellman equation. 
 
-Some elements of this implementation are from yusme/LSPI (https://github.com/yusme/LSPI). The CartPole environment (environment.py) is from (http://incompleteideas.net/sutton/book/code/pole.c), which is used in the Gymnasium CartPole-v1 implementation. The environment here is modified to have 3 discrete actions and noisy force, consistent with Lagoudakis and Parr. 
+Some elements of this implementation are from [github.com/yusme/LSPI].  
 
-Results (Lagoudakis parameters):
-| Episodes trained | Batch size | Average steps |
-| ---------------- | ---------- | ------------- |
-| 100              | 600        | 25.33         |
-| 200              | 1200       | 2498.54       |
-| 300              | 1800       | 2653.33       |
-| 400              | 2400       | 3000          |
-| 500              | 3000       | 3000          |
+
 
 
 
