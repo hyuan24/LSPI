@@ -99,49 +99,6 @@ class LSTDQ:
         new_weight= np.dot(inv_A,b)
 
         return new_weight
-  
-    def train_parameter2 (self, sample, basis_function ):
-        r""" Compute Q value function of current policy
-            to obtain the greedy policy
-        """
-        tau = 1
-        k = basis_function.numWeights
-
-        A=np.zeros([k,k])
-        b=np.zeros([k,1])
-        np.fill_diagonal(A, 0.1)
-
-        states      = sample[0]
-        actions     = sample[1]
-        rewards     = (sample[2] / tau).ravel()
-        next_states = sample[3]
-
-        for i in range(len(states)):
-
-            # take action from the greedy target policy
-            action= self.policy.get_actions(next_states[i])
-
-            phi      = self.basis_function.basisfunc(states[i], actions[i])
-            grad_s   = self.basis_function.grad_s(states[i], actions[i])
-            grad_a   = self.basis_function.grad_a(states[i], actions[i])
-
-            beta = np.log(self.gamma)/-tau
-            A_i = beta * phi - np.dot(grad_s, (next_states[i] - states[i])/tau) + (action-actions[i])/tau * grad_a
-            b_i = rewards[i]
-            
-            phi  = np.reshape(phi, [k, 1])
-
-            A_real = np.matmul(phi, A_i.reshape([1,k]))
-            b_real = b_i * phi
-
-            A = A + A_real
-            b = b + b_real
-
-        inv_A = np.linalg.inv(A)
-
-        new_weight= np.dot(inv_A,b)
-
-        return new_weight
     
     def train_parameter3 (self, sample, basis_function ):
         """ Compute Q value function of current policy
@@ -172,7 +129,7 @@ class LSTDQ:
             A_i = beta * phi - np.dot(grad_s, (next_states[i] - states[i])/delta_t) - (action-actions[i])/delta_t * grad_a
             #phi_next = phi + (action-actions[i])/delta_t*grad_a + np.dot(grad_s, (next_states[i]-states[i])/delta_t)
             #A_i = phi - 0.95 * phi_next 
-            b_i = rewards[i] * delta_t
+            b_i = rewards[i] / delta_t
             
             phi  = np.reshape(phi, [k, 1])
 

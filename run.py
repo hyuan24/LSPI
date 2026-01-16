@@ -235,21 +235,14 @@ def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1
 
 def main():
 
-    _ = experiment_2(30, [1000,1000], 60, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215) 
+    #_ = experiment_2(30, [1000,1000], 60, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215/10) 
 
-    _ = experiment_2(30, [1000,1000], 60, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) 
+    #_ = experiment_2(30, [1000,1000], 60, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) 
     
-    #plot_actions(1000, 200, 3, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True)
+    plot_actions(1000, 200, 3, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True)
  
     #plot_qs(500,100, "radial", "dense", 1.0, False, True, True, "learned_qs")
-    # For example: tr_t/ts_t = 20, 50, 100.
-    # 20: PhiBE Avg steps 45013.625. Avg reward -0.03529980115395789 per step vs LSPI Avg steps 35029.125. Avg reward -0.0870531651155179 per step
-    # 50: PhiBE Avg steps 42563.409999999996. Avg reward -0.03916390261548118 per step vs LSPI Avg steps 40048.81. Avg reward -0.0600869443077147 per step
-    # 100: PhiBE Avg steps 45824.41499999999. Avg reward -0.025315581134487626 per step vs LSPI Avg steps 40096.935000000005. Avg reward -0.060846668387275746 per step
-    # 20: PhiBE Avg steps 45028.735. Avg reward -0.024372863134196326 per step vs LSPI Avg steps 40019.28777777777. Avg reward -0.061215910633776814 per step
-    # 50: PhiBE Avg steps 47407.70611111111. Avg reward -0.020790113927377164 per step vs LSPI Avg steps 41706.883888888886. Avg reward -0.05177501100404373 per step
-    # 100: PhiBE Avg steps 49289.10555555556. Avg reward -0.013150961630736212 per step vs LSPI Avg steps 33493.38166666667. Avg reward -0.09373054556209852 per step
-    # 10: PhiBE Avg steps 45008.650555555556. Avg reward -0.02894617528464123 per step vs LSPI Avg steps 33349.72777777778. Avg reward -0.09781657590748873 per step
+    
     '''
     plt.figure()
     plt.plot(np.linspace(100, 1000,10), results, label='Average episode length')
@@ -263,11 +256,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-"""
-SAMPLE SIZE 200.0 EPISODES. Avg steps 1822.42.
-SAMPLE SIZE 300.0 EPISODES. sAvg steps 2611.5620000000004.
-"""
