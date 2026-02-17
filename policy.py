@@ -27,7 +27,14 @@ class Policy:
 
         return np.random.choice(best_actions)
 
-
+    def softmax(self, x):
+        e_x = np.exp(x-np.max(x))
+        return e_x / e_x.sum()
+    
+    def get_actions_soft(self, state):
+        q_state_action=[self.q_value_function(state,a) for a in self.actions]
+        q_softmax = self.softmax(q_state_action)
+        return np.dot(self.actions, q_softmax)
 
 
 

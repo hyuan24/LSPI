@@ -130,7 +130,7 @@ def experiment_2(numPol, epRange, testEps, basisType="radial", reward="sutton_ba
 
     return totalAvg
 
-def plot_actions(numEps, numTicks, numPol, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=False, phibeUpdate=False, useAgent=None):
+def plot_actions(numEps, numTicks, numPol, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=False, phibeUpdate=False, useAgent=None, soft=False):
    
     env = ModifiedCartPoleEnv(reward)
     action_dim = 1
@@ -160,7 +160,10 @@ def plot_actions(numEps, numTicks, numPol, basisType="radial", reward="sutton_ba
         for i, a in enumerate(angles):
             for j, ad in enumerate(angles_dot):
                 state = [a,ad] 
-                A[i,j] = agent.policy.get_actions(state)
+                if soft:
+                    A[i,j] = agent.policy.get_actions_soft(state)
+                else:
+                    A[i,j] = agent.policy.get_actions(state)
         As.append(A)
 
     # GRAPH STUFF
@@ -239,7 +242,7 @@ def main():
 
     #_ = experiment_2(30, [1000,1000], 60, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) 
     
-    plot_actions(1000, 200, 3, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True)
+    plot_actions(1000, 200, 3, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True, soft=True)
  
     #plot_qs(500,100, "radial", "dense", 1.0, False, True, True, "learned_qs")
     
