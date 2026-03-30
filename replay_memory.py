@@ -46,7 +46,7 @@ class Memory:
          batch_size = len(actions)
 
          current_state = np.resize(current_state,[batch_size,obs_dim])
-         actions       = np.resize(actions, [batch_size, self.act_dim])
+         actions       = np.resize(actions, [batch_size,])
          rewards       = np.resize(rewards, [batch_size, 1])
          next_state    = np.resize(next_state, [batch_size, obs_dim])
          done          = np.resize(done, [batch_size, 1])

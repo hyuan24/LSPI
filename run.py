@@ -1,14 +1,12 @@
 from matplotlib import pyplot as pl
 
 from replay_memory import Memory
-#from gym.monitoring.video_recorder import VideoRecorder
 from lspi import LSPI
 import numpy as np
 
 from env2 import ModifiedCartPoleEnv
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
 
 LSPI_ITERATION= 20
 GAMMA=0.975
@@ -52,6 +50,8 @@ def collect_data(env, memory, numEps, numPol):
             action = env.action_space.sample()
             next_state, reward, done, _, _ = env.step(action)
             memory.add([state, action, reward, next_state, done])
+
+            #memory.add([-1*state, 2-action, reward, -1*next_state, done])
             state = next_state
           
         #print("END OF EPISODE ",j+1, "- STEPS:" ,steps)
@@ -82,7 +82,7 @@ def collect_uniform_data(env, memory, numEps, numPol):
     return memory, 8
 
 
-def training_loop(env, testEnv, memory, numPol, numEps, avg_random_steps, testEps, basisType, alpha, fancyBasis, phibeUpdate):
+def training_loop(env, testEnv, memory, numPol, numEps, avg_random_steps, testEps, basisType, alpha, fancyBasis, phibeUpdate, tau):
   
     # memory object should have samples in it!!
 
@@ -91,7 +91,7 @@ def training_loop(env, testEnv, memory, numPol, numEps, avg_random_steps, testEp
     #test_rewards = []
 
     for _ in tqdm(range(numPol)):
-        agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, GAMMA, fancyBasis, phibeUpdate=phibeUpdate)
+        agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, GAMMA, tau, fancyBasis, phibeUpdate=phibeUpdate)
         sample = memory.select_sample(round(numEps*avg_random_steps))  # [current_state, actions, rewards, next_state, done]
         _ = agent.train(sample, LSPI_ITERATION)
         steps, reward = test_policy(testEnv, agent, testEps)
@@ -102,7 +102,7 @@ def training_loop(env, testEnv, memory, numPol, numEps, avg_random_steps, testEp
     return np.mean(test_steps), np.mean(test_rewards)
 
 
-def experiment_2(numPol, epRange, testEps, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=False, phibeUpdate=False, testTau=0.1215):
+def experiment_2(numPol, epRange, testEps, tau, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=False, phibeUpdate=False, testTau=0.1215):
     '''
     epRange: range of episode sizes (roughly 7 data points per episode)
     numPol: number of policies (with different samples) to train for each sample size
@@ -124,13 +124,13 @@ def experiment_2(numPol, epRange, testEps, basisType="radial", reward="sutton_ba
     for epSize in np.linspace(minEps, maxEps, int((maxEps-minEps)/100)+1):
         print(f"Sample size: {epSize} episodes.")
         
-        steps, rew = training_loop(env, testEnv, memory, numPol, int(epSize), avg_random_steps, testEps, basisType, alpha, fancyBasis, phibeUpdate)
+        steps, rew = training_loop(env, testEnv, memory, numPol, int(epSize), avg_random_steps, testEps, basisType, alpha, fancyBasis, phibeUpdate, tau)
         print(f"Avg steps {steps}. Avg reward {rew} per step")
         totalAvg.append(steps)
 
     return totalAvg
 
-def plot_actions(numEps, numTicks, numPol, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=False, phibeUpdate=False, useAgent=None):
+def plot_actions(numEps, numTicks, numPol, tau, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=False, phibeUpdate=False, useAgent=None, soft=False):
    
     env = ModifiedCartPoleEnv(reward)
     action_dim = 1
@@ -147,9 +147,9 @@ def plot_actions(numEps, numTicks, numPol, basisType="radial", reward="sutton_ba
         else: 
             memory, avg_random_steps = collect_data(env, memory, numEps, numPol)
    
-    for _ in range(numPol):
+    for _ in tqdm(range(numPol)):
         if useAgent is None:
-            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=GAMMA, fancyBasis=fancyBasis, phibeUpdate=phibeUpdate)
+            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=GAMMA, tau=tau, fancyBasis=fancyBasis, phibeUpdate=phibeUpdate)
             sample = memory.select_sample(round(numEps*avg_random_steps))  # [current_state, actions, rewards, next_state, done]
             _ = agent.train(sample, LSPI_ITERATION)
         else:
@@ -160,7 +160,10 @@ def plot_actions(numEps, numTicks, numPol, basisType="radial", reward="sutton_ba
         for i, a in enumerate(angles):
             for j, ad in enumerate(angles_dot):
                 state = [a,ad] 
-                A[i,j] = agent.policy.get_actions(state)
+                if soft:
+                    A[i,j] = agent.policy.softmax_get_action(state)
+                else:
+                    A[i,j] = agent.policy.get_actions(state)
         As.append(A)
 
     # GRAPH STUFF
@@ -176,7 +179,7 @@ def plot_actions(numEps, numTicks, numPol, basisType="radial", reward="sutton_ba
     fig.colorbar(im, ax=axs.ravel().tolist(), label="pi(state)")
     plt.show()
         
-def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=False, phibeUpdate=False, type="learned_qs"):
+def plot_qs(numEps, numTicks, tau, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=False, phibeUpdate=False, type="learned_qs"):
    
     env = ModifiedCartPoleEnv(reward)
     action_dim = 1
@@ -196,16 +199,19 @@ def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1
     Qs = []
     sample = memory.select_sample(memory.size()) 
 
-    for k in range(len(actions)): # one plot per action
-        if not phibeUpdate or type=="phibe_estimate":
-            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=GAMMA, fancyBasis=fancyBasis)
-            _ = agent.train(sample, LSPI_ITERATION)
-            weights = agent.policy.weights
-        else:
-            agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=GAMMA, fancyBasis=fancyBasis, phibeUpdate=phibeUpdate)
-            _ = agent.train(sample, LSPI_ITERATION)
-            weights = agent.policy.weights
-        
+
+    if not phibeUpdate or type=="phibe_estimate":
+        agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=GAMMA, tau=tau, fancyBasis=fancyBasis)
+        _ = agent.train(sample, LSPI_ITERATION)
+        weights = agent.policy.weights
+    else:
+        agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, gamma=GAMMA, tau=tau, fancyBasis=fancyBasis, phibeUpdate=phibeUpdate)
+        _ = agent.train(sample, LSPI_ITERATION)
+        weights = agent.policy.weights
+    print("Finished training.")
+
+    for k in range(len(actions)):
+
         Q = np.zeros([numTicks,numTicks])
 
         for i, a in enumerate(angles):
@@ -213,9 +219,12 @@ def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1
                 state = [a,ad] 
                 #action = agent.policy.get_actions(state)
                 if type=="learned_qs": # ACTUALLY V VALUE NOW!
-                    q = np.dot(agent.policy.basis_function.basisfunc(state, actions[k]), weights)
+                    pair = np.mod(k+1,3)
+                    q1 = np.dot(agent.policy.basis_function.basisfunc(state, k), weights)
+                    q2 = np.dot(agent.policy.basis_function.basisfunc(state, pair), weights)
+                    q = q1-q2
                 elif type=="phibe_estimate":
-                    Q_rl = np.dot(agent.policy.basis_function.basisfunc(state, actions[k]), weights)
+                    Q_rl = np.dot(agent.policy.basis_function.basisfunc(state, k), weights)
                     V_rl = np.dot(agent.policy.basis_function.basisfunc(state, agent.policy.get_actions(state)), weights)
                     q = (Q_rl-V_rl)/delta_t + V_rl
                 Q[i,j] =q
@@ -228,31 +237,25 @@ def plot_qs(numEps, numTicks, basisType="radial", reward="sutton_barto", alpha=1
         if k ==0:
             ax.set_ylabel("angular velocity (rad/s)")
         ax.set_xlabel("angle (rad)")
-        ax.set_title(f"Q(state, action={actions[k]})")
+        ax.set_title(f"Q(state, action={k}-{np.mod(k+1,3)})")
     
     fig.colorbar(im, ax=axs.ravel().tolist(), label="Q")
     plt.show()
 
 def main():
+    import matplotlib.pyplot as plt
+    _ = experiment_2(30, [1000,1000], 45, 100, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215/10) 
 
-    #_ = experiment_2(30, [1000,1000], 60, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215/10) 
+    _ = experiment_2(30, [1000,1000], 45, 100, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215/10) 
 
-    #_ = experiment_2(30, [1000,1000], 60, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) 
+    #_ = experiment_2(30, [1000,1000], 60, 1, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) 
     
-    plot_actions(1000, 200, 3, basisType="radial", reward="sutton_barto", alpha=1.0, uniform=False, fancyBasis=True, phibeUpdate=True)
+    #plot_actions(1000, 150, 2, 4, basisType="radial", reward="dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, soft=True)
  
-    #plot_qs(500,100, "radial", "dense", 1.0, False, True, True, "learned_qs")
-    
-    '''
-    plt.figure()
-    plt.plot(np.linspace(100, 1000,10), results, label='Average episode length')
-    plt.xlabel("Training Episodes")
-    plt.ylabel("Average steps per episode")
-    plt.legend()
-    plt.grid(True)
-    plt.show() 
-    '''
-    
+    #plot_qs(1000,100, 1.75, "radial", "dense", 1, False, False, True, "learned_qs")
+
+    # Avg steps 50000.0. Avg reward -0.007355221520073872 per step PhiBE
+    # Avg steps 40094.96. Avg reward -0.06692162762982254 per step LSPI
 
 if __name__ == '__main__':
     main()

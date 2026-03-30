@@ -155,9 +155,31 @@ class ModifiedCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     env = ModifiedCartPoleEnv()
     env.reset()
-    env.integrate(50)
+
+    theta = []
+    theta_dot = []
+    for j in range(1000):
+
+        state = env.reset()
+
+        done = False
+
+        while not done:
+            theta.append(state[0])
+            theta_dot.append(state[1])
+            action = env.action_space.sample()
+             
+            state, reward, done, info, truncated = env.step(action)
+    
+    from sklearn.cluster import KMeans
+
+    kmeans = KMeans(n_clusters=10, random_state=0) 
+
+    kmeans.fit(np.hstack([np.asarray(theta).reshape(-1,1), np.asarray(theta_dot).reshape(-1,1)]))
+    print(kmeans.cluster_centers_)
     """
     env1 = ModifiedCartPoleEnv("state_norm")
     #state1 = env1.reset()
