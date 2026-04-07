@@ -83,13 +83,13 @@ class LSTDQ:
             action= self.policy.get_actions(next_states[i])
 
             phi =      self.basis_function.basisfunc(states[i], actions[i])
-            phi_next = self.basis_function.basisfunc(next_states[i], action)
+            #phi_next = self.basis_function.basisfunc(next_states[i], action)
+            pn_basis_list  = [self.basis_function.basisfunc(next_states[i], a) for a in range(3)]
+            pn_Qs          = [np.dot(pn_basis_list[a].T, self.policy.weights) for a in range(3)]
+            pn_pis         = self.policy.softmax(pn_Qs)
+            pn_phi_pi      = pn_pis @ pn_basis_list
 
-            # ------ABSORBING STATES------#
-            #if rewards[i] == -1:
-                #phi_next *= 0
-
-            loss = (phi - self.gamma * np.array(phi_next))
+            loss = (phi - self.gamma * pn_phi_pi)
             phi  = np.resize(phi, [k, 1])
 
             loss = np.resize(loss, [1, len(loss)])
