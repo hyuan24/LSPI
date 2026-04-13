@@ -1,4 +1,4 @@
-# Least-Squares Policy Iteration
+# Least-Squares Policy Iteration READ-ONLY
 
 Implementation of LSPI (Lagoudakis and Parr) from (https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf) with a PhiBE formulation. LSPI is an approximate model-free policy iteration method. In this case, it uses a linear architecture with radial basis functions to approximate the Q-values. 
 
