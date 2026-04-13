@@ -7,6 +7,7 @@ import numpy as np
 from env2 import ModifiedCartPoleEnv
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import pandas as pd
 
 LSPI_ITERATION= 20
 GAMMA=0.975
@@ -22,7 +23,12 @@ def test_policy(env, agent, testEps, maxSteps=50000):
         steps = 0
         done = False
         while not done and steps < maxSteps:
-           
+            if np.random.rand() < 1/200:
+                df = pd.DataFrame([np.abs(state[0])], columns=['Absolute Angle'])
+                if agent.lstdq.phibeUpdate==True:              
+                    df.to_csv('anglesPhiBE.csv', mode='a', index=False, header=False)
+                else:
+                    df.to_csv('anglesLSPI.csv', mode='a', index=False, header=False)
             steps += 1
          
             action=agent._act(state)
@@ -34,8 +40,8 @@ def test_policy(env, agent, testEps, maxSteps=50000):
         perstep_rewards.append(cum_reward/steps)
 
     #final_policy = agent.policy
-    print(f"Policy ran {np.mean(all_steps)} steps and accumulated {np.mean(perstep_rewards)} per step")
-    return np.mean(all_steps), np.mean(perstep_rewards)
+    #print(f"Policy ran {np.mean(all_steps)} steps and accumulated {np.mean(perstep_rewards)} per step")
+    return np.mean(all_steps), np.mean(perstep_rewards), np.std(all_steps)
 
 
 def collect_data(env, memory, numEps, numPol):
@@ -94,11 +100,13 @@ def training_loop(env, testEnv, memory, numPol, numEps, avg_random_steps, testEp
         agent = LSPI(env, env.observation_space.shape[0], basisType, alpha, GAMMA, tau, fancyBasis, phibeUpdate=phibeUpdate)
         sample = memory.select_sample(round(numEps*avg_random_steps))  # [current_state, actions, rewards, next_state, done]
         _ = agent.train(sample, LSPI_ITERATION)
-        steps, reward = test_policy(testEnv, agent, testEps)
+        steps, reward, std = test_policy(testEnv, agent, testEps)
+        #print(f"Policy ran {steps} steps, std {std}")
         test_steps.append(steps)
         test_rewards.append(reward)
-        
 
+    #df = pd.DataFrame({'Steps': test_steps, 'Rewards': test_rewards})
+    #df.to_csv(f"phibe{phibeUpdate}_timestep{tau}.csv", index=False)
     return np.mean(test_steps), np.mean(test_rewards)
 
 
@@ -108,6 +116,7 @@ def experiment_2(numPol, epRange, testEps, tau, basisType="radial", reward="sutt
     numPol: number of policies (with different samples) to train for each sample size
     testEps: number of episodes to test each policy for
     '''
+    print(f"testTau: {testTau} | phibeUpdate: {phibeUpdate}")
     env = ModifiedCartPoleEnv(reward)
     testEnv = ModifiedCartPoleEnv(reward, testTau)
     action_dim = 1
@@ -244,18 +253,25 @@ def plot_qs(numEps, numTicks, tau, basisType="radial", reward="sutton_barto", al
 
 def main():
     import matplotlib.pyplot as plt
-    _ = experiment_2(30, [1000,1000], 45, 100, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215/10) 
+    #_ = experiment_2(30, [1000,1000], 10, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.1215) # Avg steps 36942.47. Avg reward -0.10639302594620692 per step
+    #_ = experiment_2(30, [1000,1000], 10, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.1215) # 16.70
 
-    _ = experiment_2(30, [1000,1000], 45, 100, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215/10) 
 
-    #_ = experiment_2(30, [1000,1000], 60, 1, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) 
-    
-    #plot_actions(1000, 150, 2, 4, basisType="radial", reward="dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, soft=True)
+
+    #_ = experiment_2(20, [1000,1000], 20, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215) # Avg steps 50000.0. Avg reward -0.013207532501148476 per step
+    #_ = experiment_2(20, [1000,1000], 20, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215) # Avg steps 50000.0. Avg reward -0.0031860718851407454 per step
+    #_ = experiment_2(20, [1000,1000], 20, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215/2) # Avg steps 50000.0. Avg reward -0.013946719499146209 per step
+    #_ = experiment_2(20, [1000,1000], 20, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215/2) # Avg steps 50000.0. Avg reward -0.0006227428061412627 per step
+    _ = experiment_2(30, [1000,1000], 20, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215/5) # Avg steps 50000.0. Avg reward -0.014239900727191024 per step
+    _ = experiment_2(30, [1000,1000], 20, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215/5) # Avg steps 50000.0. Avg reward -0.0005136646259526588 per step
+    #_ = experiment_2(30, [1000,1000], 30, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215/10) #Avg steps 50000.0. Avg reward -0.014155377901060738 per step
+    #_ = experiment_2(30, [1000,1000], 9, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215/10) # Avg steps 50000.0. Avg reward -0.0006261326700567053 per step
+    #_ = experiment_2(30, [1000,1000], 30, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=False, testTau=0.01215/100)
+    #_ = experiment_2(30, [1000,1000], 30, 200, "radial", "dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, testTau=0.01215/100) 
+
+    #plot_actions(1000, 150, 2, 100, basisType="radial", reward="dense", alpha=1, uniform=False, fancyBasis=True, phibeUpdate=True, soft=True) 
  
     #plot_qs(1000,100, 1.75, "radial", "dense", 1, False, False, True, "learned_qs")
-
-    # Avg steps 50000.0. Avg reward -0.007355221520073872 per step PhiBE
-    # Avg steps 40094.96. Avg reward -0.06692162762982254 per step LSPI
 
 if __name__ == '__main__':
     main()
